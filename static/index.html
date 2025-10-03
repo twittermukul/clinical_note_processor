@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Entity Extraction - UMLS</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🏥 Medical Entity Extraction</h1>
+                    <p class="subtitle">Extract UMLS-based medical entities from clinical notes using AI</p>
+                </div>
+                <button onclick="logout()" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white; padding: 0.5rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <section class="input-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="text">Text Input</button>
+                    <button class="tab-btn" data-tab="file">Upload File</button>
+                </div>
+
+                <!-- Text Input Tab -->
+                <div id="text-tab" class="tab-content active">
+                    <textarea
+                        id="medical-note"
+                        placeholder="Enter or paste a medical note here...&#10;&#10;Example:&#10;Patient presents with acute chest pain and dyspnea. History of hypertension and type 2 diabetes mellitus. Current medications include lisinopril 20mg daily and metformin 1000mg BID. Vital signs: BP 160/95, HR 105 bpm. Troponin I elevated at 2.5 ng/mL. ECG shows ST-segment elevation. Diagnosis: STEMI. Plan: emergent PCI."
+                        rows="12"
+                    ></textarea>
+                </div>
+
+                <!-- File Upload Tab -->
+                <div id="file-tab" class="tab-content">
+                    <div class="file-upload">
+                        <input type="file" id="file-input" accept=".txt,.text,.pdf" hidden>
+                        <label for="file-input" class="file-upload-label">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span>Click to upload or drag and drop</span>
+                            <span class="file-types">TXT or PDF files</span>
+                        </label>
+                        <div id="file-name" class="file-name"></div>
+                    </div>
+                </div>
+
+                <!-- Model Selection and Extract Button -->
+                <div class="controls">
+                    <div class="model-select-wrapper">
+                        <label for="model-select">Model:</label>
+                        <select id="model-select">
+                            <option value="gpt-4o" selected>GPT-4o (Recommended)</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                            <option value="o1">O1 (Advanced Reasoning)</option>
+                            <option value="o1-mini">O1 Mini (Fast Reasoning)</option>
+                            <option value="o3-mini">O3 Mini (Latest Reasoning)</option>
+                            <option value="gpt-5">GPT-5 (Next Generation)</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-4">GPT-4</option>
+                        </select>
+                    </div>
+                    <button id="extract-btn" class="extract-btn">
+                        <span class="btn-text">Extract USCDI v6 Data</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="results-section" style="display: none;">
+                <div class="results-header">
+                    <h2>Extraction Results</h2>
+                    <div class="results-stats">
+                        <span id="entity-count" class="badge">0 entities</span>
+                    </div>
+                </div>
+
+                <!-- Tabs for Results View -->
+                <div class="results-tabs">
+                    <button class="results-tab-btn active" data-view="structured">Structured Data</button>
+                    <button class="results-tab-btn" data-view="highlighted">Highlighted Text</button>
+                </div>
+
+                <!-- Structured Data View -->
+                <div id="structured-view" class="results-view active">
+                    <div id="results-content" class="results-content"></div>
+                </div>
+
+                <!-- Highlighted Text View -->
+                <div id="highlighted-view" class="results-view" style="display: none;">
+                    <div id="highlighted-text" class="highlighted-text-container"></div>
+                </div>
+
+                <div class="results-actions">
+                    <button id="download-json-btn" class="secondary-btn">Download JSON</button>
+                    <button id="clear-btn" class="secondary-btn">Clear Results</button>
+                </div>
+            </section>
+
+            <!-- Error Message -->
+            <div id="error-message" class="error-message" style="display: none;"></div>
+        </main>
+
+        <footer>
+            <p>Powered by OpenAI API • UMLS Semantic Types</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

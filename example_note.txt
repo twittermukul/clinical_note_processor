@@ -1,0 +1,50 @@
+PATIENT: John Smith
+DATE: October 1, 2025
+MRN: 123456789
+
+CHIEF COMPLAINT:
+Patient presents with severe chest pain and shortness of breath for the past 2 hours.
+
+HISTORY OF PRESENT ILLNESS:
+68-year-old male with a history of hypertension and type 2 diabetes mellitus presents to the emergency department with acute onset of substernal chest pain radiating to the left arm. Pain started at rest approximately 2 hours ago. Associated symptoms include diaphoresis, nausea, and dyspnea. Patient reports taking nitroglycerin 0.4mg sublingual x3 without relief.
+
+PAST MEDICAL HISTORY:
+- Hypertension (diagnosed 2015)
+- Type 2 Diabetes Mellitus (diagnosed 2018)
+- Hyperlipidemia
+- Former smoker (quit 2020, 40 pack-year history)
+
+MEDICATIONS:
+- Lisinopril 20mg PO daily
+- Metformin 1000mg PO BID
+- Atorvastatin 40mg PO daily
+- Aspirin 81mg PO daily
+
+PHYSICAL EXAMINATION:
+Vitals: BP 160/95 mmHg, HR 105 bpm, RR 22/min, Temp 37.2°C, SpO2 94% on room air
+General: Alert, anxious, diaphoretic
+Cardiovascular: Tachycardic, regular rhythm, no murmurs
+Respiratory: Bilateral crackles at lung bases
+Abdomen: Soft, non-tender
+
+LABORATORY RESULTS:
+- Troponin I: 2.5 ng/mL (elevated, normal <0.04)
+- BNP: 450 pg/mL (elevated)
+- Glucose: 185 mg/dL
+- Creatinine: 1.4 mg/dL
+- WBC: 11,500/μL
+
+ECG FINDINGS:
+ST-segment elevation in leads II, III, and aVF consistent with inferior wall myocardial infarction.
+
+ASSESSMENT AND PLAN:
+Acute ST-elevation myocardial infarction (STEMI), inferior wall.
+
+Treatment initiated:
+1. Aspirin 325mg chewed
+2. Clopidogrel 600mg loading dose
+3. Heparin bolus and infusion
+4. Emergent cardiac catheterization arranged
+5. Transfer to CCU
+
+Patient consented for emergent percutaneous coronary intervention (PCI). Cardiology consulted. Will monitor cardiac biomarkers, continue anticoagulation, and reassess post-intervention.

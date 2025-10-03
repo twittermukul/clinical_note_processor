@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  medical-extraction-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: qcogadvisory/medical-entity-extractor:latest
+    container_name: medical-extraction-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    env_file:
+      - .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      # Mount for development (optional - comment out for production)
+      # - ./medical_entity_extractor.py:/app/medical_entity_extractor.py
+      # - ./app.py:/app/app.py
+      # - ./static:/app/static
+
+      # Logs directory (optional)
+      - ./logs:/app/logs
+    networks:
+      - medical-extraction-network
+    labels:
+      - "com.medical-extraction.description=Medical Entity Extraction API using UMLS and OpenAI"
+      - "com.medical-extraction.version=1.0.0"
+
+networks:
+  medical-extraction-network:
+    driver: bridge
+
+volumes:
+  logs:

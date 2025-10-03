@@ -1,0 +1,307 @@
+{
+  "version": "USCDI v6",
+  "description": "Complete USCDI v6 prompt metadata for extracting all clinical data elements (enhanced for API use, with stronger heuristics, negation handling, temporal normalization, micro gotchas, and inline examples).",
+  "master_system_prompt": "Goal: Do comprehensive USCDI v6 extraction from a single clinical note. Read end-to-end. Capture structured facts plus narrative where required.\n\nMethod:\n1. Sweep the whole doc\n2. Section-aware scanning (Chief Complaint → Plan)\n3. Secondary sweep for stragglers in free text (e.g., 'Return in 2 wks')\n4. Normalize units/dates\n5. Link orders ↔ future items\n6. Code if obvious\n7. Attach provenance (who/when/where) when present\n\nHard rules: Handle coreference, deduplicate, keep confirmed vs negated separate, prefer most-recent when multiple dates exist (but keep historical when explicitly stated), preserve original phrases when needed.\n\nTemporal normalization: Convert fuzzy time ('next Friday', 'in 2 wks') to YYYY-MM-DD when anchor dates exist; otherwise keep literal + relative_days.\n\nUncertainty: Include confidence ∈ {high, medium, low} when inferred from context.\n\nOutput: Valid JSON only, following the provided schema. Omit a class only if truly absent.\n\nStandards nudge: Prefer USCDI v6 scope including Portable Medical Order within Orders and UDI for all devices, not just implantables.",
+  "global_upgrades": "Where to look: Headers & synonyms (e.g., A/P, Plan, Instructions, Rec, Dispo, MDM, DC Instructions, Radiology, Lab/Studies, ROS, Nurse Notes).\n\nNegation & status: Capture current vs history of vs resolved; write status and date_of_resolution when present.\n\nLinkages:\n- Problems ↔ Orders ↔ Medications ↔ Labs/Imaging (use related_problem_codes when obvious)\n- Encounter ↔ Facility ↔ Provenance\n\nUnits & ranges: Normalize (e.g., °F→°C optional), keep original under raw_value.\n\nMini few-shot (general):\n- 'Denies tobacco' → smoking_status = never\n- 'Return in 2 weeks' (note date 2025-08-01) → follow_up_date = 2025-08-15\n- 'Consider MRI if pain persists' → this is not an order; mark as plan_recommendation, not diagnostic_imaging_order",
+  "data_classes": {
+    "allergies_and_intolerances": {
+      "description": "Harmful or undesired physiological responses associated with exposure to a substance",
+      "elements": {
+        "medication_allergy_intolerance": "Allergy or intolerance to medications",
+        "drug_class_allergy_intolerance": "Allergy or intolerance to drug classes",
+        "non_medication_allergy_intolerance": "Allergy or intolerance to non-medication substances",
+        "reaction": "Physical response to allergen"
+      },
+      "prompt": "Extract ALL allergies and intolerances. Search for medication allergies, drug-class allergies, and non-medication allergies (food, latex, environmental). Capture reaction(s), severity, criticality, and status (active/inactive). Recognize shorthand like NKDA/NKFA and record explicit negatives by category. Distinguish true allergy/intolerance from non-allergic adverse effects unless the clinician labels it as allergy/intolerance. Prefer explicit code mappings (RxNorm/SNOMED) only when present.\nOutput as a JSON array even if one item.\nExamples:\n- 'NKDA' → {\"medication_allergy_intolerance\": [], \"negative\": {\"medications\": true}}\n- 'Hives with amoxicillin (childhood)' → {\"medication_allergy_intolerance\": [{\"substance\": \"amoxicillin\", \"reaction\": \"hives\", \"status\": \"history\"}]}\n- 'Allergic to shellfish; anaphylaxis' → {\"non_medication_allergy_intolerance\": [{\"substance\": \"shellfish\", \"reaction\": \"anaphylaxis\", \"severity\": \"severe\"}]}"
+    },
+    "care_plan": {
+      "description": "Information that guides treatment of the patient and recommendations for future treatment",
+      "elements": {
+        "assessment_and_plan_of_treatment": "Clinical assessment and treatment plan",
+        "care_plan": "Comprehensive care plan",
+        "follow_up_instructions": "Follow-up appointments, lab orders, and future care instructions",
+        "scheduled_appointments": "Scheduled visits with providers"
+      },
+      "prompt": "Extract ALL care plan elements from anywhere in the note (Assessment & Plan/A&P/Plan/Instructions/MDM/Discharge). Include: assessments of current conditions, prioritized problems, treatment plans, medication changes (start/stop/hold/increase/decrease), referrals, education topics, lifestyle recommendations, follow-up instructions (convert relative times to dates if anchor date known), scheduled appointments, and future orders (labs, imaging, tests). If wording is tentative (e.g., 'consider MRI if pain persists'), keep as recommendation rather than order. Link items to problems when explicit.\nOutput as a JSON array even if one item.\nExamples:\n- 'Return to clinic in 2 weeks' (note date 2025-08-01) → {\"follow_up_instructions\": [{\"instruction\": \"Return to clinic\", \"date\": \"2025-08-15\"}]}\n- 'Start lisinopril 10 mg daily' → {\"care_plan\": [{\"action\": \"start_medication\", \"medication\": \"lisinopril 10 mg PO daily\"}]}\n- 'Consider MRI if pain persists' → {\"care_plan\": [{\"recommendation\": \"MRI if pain persists\", \"status\": \"contingent\"}]}"
+    },
+    "care_team_members": {
+      "description": "Information about a person who participates or is expected to participate in the care of a patient",
+      "elements": {
+        "care_team_member_name": "Name of care team member",
+        "care_team_member_identifier": "Identifier for care team member",
+        "care_team_member_role": "Role or specialty of team member",
+        "care_team_member_location": "Location where team member practices",
+        "care_team_member_telecom": "Contact information for team member"
+      },
+      "prompt": "Extract all care team members with names, identifiers (e.g., NPI), roles/specialties, locations/organizations, and contact info. Search in headers/footers/CC lines (PCP/Attending/Referring/Consulting/CC). Include members mentioned as CC'd if they are part of ongoing care.\nExamples:\n- 'PCP: Dr. Lee (NPI 1234567890)' → include with role=PCP, identifier=NPI.\n- 'Consulting: Cardiology – Patel, MD, City Heart Institute' → include with role=Cardiology and organization.\n- 'CC: Dr. Gomez' → include Dr. Gomez as care_team_member with role if inferable (else role='unknown')."
+    },
+    "clinical_notes": {
+      "description": "Narrative patient data relevant to the context identified by note types",
+      "note": "Clinical Notes data elements are content exchange standard agnostic",
+      "subtypes": {
+        "consultation_note": "Specialist consultation documentation",
+        "discharge_summary_note": "Hospital discharge summary",
+        "emergency_department_note": "Emergency department visit documentation",
+        "history_and_physical": "History and physical examination",
+        "operative_note": "Surgical procedure documentation",
+        "procedure_note": "Procedural documentation",
+        "progress_note": "Progress during treatment"
+      },
+      "prompt": "Identify the note type (consultation, discharge, ED, H&P, operative, procedure, progress) and extract the core narrative summary (1–3 concise paragraphs) preserving clinical meaning and key context (chief complaint, course, outcomes) without reinterpreting diagnoses."
+    },
+    "clinical_tests": {
+      "description": "Non-imaging and non-laboratory tests performed that result in structured or unstructured findings",
+      "elements": {
+        "clinical_test": "Type of clinical test performed",
+        "clinical_test_result_report": "Results or report of clinical test"
+      },
+      "prompt": "Extract all non-lab, non-imaging clinical tests (e.g., ECG/EKG interpretation, PFTs, 6-minute walk, audiogram, monofilament, PHQ-9/MoCA/gait tests), with date, score or key findings, and result/report text. Do not duplicate laboratory or imaging items here.\nExamples:\n- 'PHQ-9 score 12 (moderate)' → {\"clinical_test\": \"PHQ-9\", \"result\": {\"score\": 12, \"interpretation\": \"moderate\"}}\n- 'ECG: normal sinus rhythm, no ST changes' → {\"clinical_test\": \"ECG\", \"report\": \"NSR, no ST changes\"}\n- '6MWT: 380 meters' → {\"clinical_test\": \"6MWT\", \"result\": {\"distance_m\": 380}}"
+    },
+    "diagnostic_imaging": {
+      "description": "Tests that result in visual images requiring interpretation by a credentialed professional",
+      "elements": {
+        "diagnostic_imaging_test": "Type of imaging test performed",
+        "diagnostic_imaging_report": "Radiology report and interpretation"
+      },
+      "prompt": "Extract all diagnostic imaging tests (modality, body part, laterality, contrast, date) and the radiology impression/interpretation. If an imaging study is only planned or ordered, place it under Orders with status=pending.\nExamples:\n- 'CXR 08/12/2025: no acute process' → {\"test\": \"Chest X-ray\", \"date\": \"2025-08-12\", \"report\": \"No acute process\"}\n- 'MRI brain w/ contrast: small right frontal meningioma' → {\"test\": \"MRI brain with contrast\", \"report\": \"Small right frontal meningioma\"}\n- 'CT abd/pelvis pending' → do NOT add here; add to Orders with status=pending."
+    },
+    "encounter_information": {
+      "description": "Information related to interactions between healthcare providers and a patient",
+      "elements": {
+        "encounter_type": "Type of encounter (inpatient, outpatient, emergency, etc.)",
+        "encounter_identifier": "Unique identifier for the encounter",
+        "encounter_diagnosis": "Diagnoses associated with the encounter",
+        "encounter_time": "Date and time of encounter",
+        "encounter_location": "Location where encounter occurred",
+        "encounter_disposition": "Disposition at end of encounter"
+      },
+      "prompt": "Extract encounter type (inpatient/outpatient/ED/telehealth), identifier/MRN visit number if present, encounter diagnoses, time (start/stop or single), location (clinic/ward/service), and disposition (home, admit, transfer, AMA, home with services).\nExamples:\n- 'ED visit 2025-07-12; Dispo: Home with services' → {\"encounter_type\": \"ED\", \"encounter_time\": \"2025-07-12\", \"encounter_disposition\": \"home with services\"}\n- 'Televisit with PCP' → {\"encounter_type\": \"telehealth\", \"location\": \"PCP clinic\"}\n- 'Admitted to medicine ward' → {\"encounter_type\": \"inpatient\", \"encounter_disposition\": \"admit\"}"
+    },
+    "facility_information": {
+      "description": "Physical place of available services or resources",
+      "elements": {
+        "facility_identifier": "Unique identifier for the facility",
+        "facility_type": "Type of healthcare facility",
+        "facility_name": "Name of the facility",
+        "facility_address": "Physical address of facility"
+      },
+      "prompt": "Extract facility identifier/site code if present, facility type (hospital/clinic/SNF/etc.), name, and full address text. Include partials when full address is not available."
+    },
+    "family_health_history": {
+      "description": "Family member health condition(s) that are relevant to a patient's care",
+      "elements": {
+        "family_health_history": "Family member conditions and relationships"
+      },
+      "prompt": "Extract all family health history: relation, condition, age at onset/death when available, and negative statements (e.g., 'no family history of colon cancer'). Capture mentions in Family History and anywhere in HPI/Assessment (e.g., 'father MI at 52').\nExamples:\n- 'Mother: breast cancer age 45' → {\"relation\": \"mother\", \"condition\": \"breast cancer\", \"age_at_onset\": 45}\n- 'No family history of colon cancer' → {\"negative\": {\"colon cancer\": true}}\n- 'Brother with type 1 diabetes' → {\"relation\": \"brother\", \"condition\": \"type 1 diabetes\"}"
+    },
+    "goals_and_preferences": {
+      "description": "Desired state to be achieved by a person or a person's elections to guide care",
+      "elements": {
+        "patient_goals": "Patient's health and treatment goals",
+        "sdoh_goals": "Social determinants of health goals",
+        "advance_directive_observation": "Advance directive status and preferences",
+        "care_experience_preference": "Patient preferences for care experience",
+        "treatment_intervention_preference": "Patient preferences for treatments"
+      },
+      "prompt": "Extract patient goals (clinical & SDOH), advance directives (e.g., DNR/DNI, POLST on file), care experience preferences (communication, language, privacy), and treatment preferences (e.g., dialysis vs conservative). Note presence/absence of documents and link to problems when explicit.\nExamples:\n- 'Goal: walk 30 minutes daily' → {\"patient_goals\": [\"walk 30 minutes daily\"]}\n- 'DNR discussed; patient elects DNR' → {\"advance_directive_observation\": {\"DNR\": true}}\n- 'Prefers communication via phone, evenings' → {\"care_experience_preference\": {\"communication\": \"phone\", \"preferred_time\": \"evening\"}}"
+    },
+    "health_insurance_information": {
+      "description": "Data related to an individual's insurance coverage for health care",
+      "elements": {
+        "coverage_status": "Current insurance coverage status",
+        "coverage_type": "Type of insurance coverage",
+        "relationship_to_subscriber": "Relationship to primary subscriber",
+        "member_identifier": "Member ID",
+        "subscriber_identifier": "Subscriber ID",
+        "group_identifier": "Group number",
+        "payer_identifier": "Insurance payer identifier"
+      },
+      "prompt": "Extract insurance coverage details: status, type (Medicare/Medicaid/Commercial/etc.), relationship to subscriber, member/subscriber/group identifiers, and payer identifier or name."
+    },
+    "health_status_assessments": {
+      "description": "Assessments of health-related matters of interest, importance, or worry",
+      "elements": {
+        "health_concerns": "Current health concerns",
+        "functional_status": "Functional ability status",
+        "disability_status": "Disability status",
+        "mental_cognitive_status": "Mental and cognitive status",
+        "pregnancy_status": "Pregnancy status",
+        "alcohol_use": "Alcohol use assessment",
+        "substance_use": "Substance use assessment",
+        "physical_activity": "Physical activity level",
+        "sdoh_assessment": "Social determinants of health assessment",
+        "smoking_status": "Smoking status"
+      },
+      "prompt": "Extract ALL social and health status assessments from anywhere: smoking/tobacco (packs/day, years, current/former/never), alcohol (drinks/week, frequency), drugs (type/frequency), physical activity, sleep, functional status/ADLs, disability, pregnancy, mental/cognitive status, and SDOH (housing, food, transport, safety). Translate denials into structured 'never/none' where applicable.\nExamples:\n- 'Denies tobacco use' → {\"smoking_status\": \"never\"}\n- 'Drinks ~2 beers/week' → {\"alcohol_use\": {\"amount_per_week\": \"2 beers\"}}\n- 'No IV drug use' → {\"substance_use\": {\"injection_drugs\": \"none\"}}"
+    },
+    "immunizations": {
+      "description": "Record of vaccine administration",
+      "elements": {
+        "immunizations": "Vaccine name and details",
+        "lot_number": "Vaccine lot number"
+      },
+      "prompt": "Extract immunizations with vaccine name, date, lot number, series, and status (given/declined). Accept self-reported history when clearly attributed to the patient.\nExamples:\n- 'Tdap 2022 (pt-reported)' → {\"immunizations\": [{\"vaccine\": \"Tdap\", \"date\": \"2022-01-01\", \"reported_by\": \"patient\"}]}\n- 'Influenza vaccine given 10/15/2024, lot AB123' → include lot number and date.\n- 'Declined shingles vaccine' → {\"immunizations\": [{\"vaccine\": \"zoster\", \"status\": \"declined\"}]}"
+    },
+    "laboratory": {
+      "description": "Analysis of clinical specimens to obtain information about the health of a patient",
+      "elements": {
+        "tests": "Laboratory test name",
+        "values_results": "Numeric or qualitative result",
+        "specimen_type": "Type of specimen collected",
+        "result_status": "Status of result (final, preliminary, etc.)",
+        "result_unit_of_measure": "Unit of measurement",
+        "result_reference_range": "Normal reference range",
+        "result_interpretation": "Interpretation (normal, abnormal, high, low)",
+        "specimen_source_site": "Anatomical site of specimen collection",
+        "specimen_identifier": "Specimen ID",
+        "specimen_condition_acceptability": "Specimen quality/acceptability"
+      },
+      "prompt": "Extract ALL lab results from anywhere: test name, value, unit, date, reference range, abnormal flags (H/L/↑/↓), interpretation, status (final/prelim), and specimen details (type/site/id/condition) when present. Include inline mentions (e.g., 'A1C 7.2%'). Map LOINC only when explicitly provided.\nOutput as a JSON array even if one item.\nExamples:\n- 'A1C 7.2% (H) on 2025-06-01' → {\"test\": \"Hemoglobin A1c\", \"value\": 7.2, \"unit\": \"%\", \"date\": \"2025-06-01\", \"interpretation\": \"high\"}\n- 'Creatinine 1.1 mg/dL (0.6–1.3) final' → include reference_range and result_status.\n- 'Urine culture pending' → do NOT add here; add an order with status=pending."
+    },
+    "medical_devices": {
+      "description": "An instrument, machine, appliance, implant, software or other article intended for medical use",
+      "elements": {
+        "unique_device_identifier": "UDI for implanted or used devices"
+      },
+      "prompt": "Extract all medical devices (implantable and non-implantable) with UDI if present, plus device name, model, manufacturer, body site, serial, status (in-use/removed), and relevant dates.\nExamples:\n- 'Left total hip arthroplasty, UDI 12345ABC' → capture device, side, UDI.\n- 'CPAP nightly' → device name=CPAP, status=in-use.\n- 'Pacemaker (Medtronic Model X) implanted 2023-04-02' → include model, manufacturer, date."
+    },
+    "medications": {
+      "description": "Pharmacologic agents used in diagnosis, cure, mitigation, treatment, or prevention of disease",
+      "elements": {
+        "medications": "Medication name",
+        "dose": "Dose amount",
+        "dose_unit_of_measure": "Unit for dose",
+        "route_of_administration": "Route (oral, IV, etc.)",
+        "indication": "Reason for medication",
+        "dispense_status": "Status of prescription",
+        "medication_instructions": "Instructions for taking medication",
+        "medication_adherence": "Patient adherence to medication"
+      },
+      "prompt": "Extract medications with name, dose + unit, route, frequency, indication, start/stop dates if present, dispense status (new/refill/continued/held/discontinued), instructions/SIG, and adherence notes. Separate current meds vs historical vs changes today. Prefer RxNorm only when explicitly provided.\nOutput as a JSON array even if one item.\nExamples:\n- 'Continue metformin 500 mg BID' → {\"name\": \"metformin\", \"dose\": 500, \"dose_unit_of_measure\": \"mg\", \"route\": \"oral\", \"frequency\": \"BID\", \"dispense_status\": \"continued\"}\n- 'Stop lisinopril' → {\"name\": \"lisinopril\", \"dispense_status\": \"discontinued\"}\n- 'Missed last 3 doses of insulin' → {\"name\": \"insulin\", \"medication_adherence\": \"missed last 3 doses\"}"
+    },
+    "orders": {
+      "description": "Provider-authored request for delivery of patient care services",
+      "note": "Orders convey provider's intent to have a service performed",
+      "elements": {
+        "medication_order": "Medication prescriptions",
+        "laboratory_order": "Lab test orders (e.g., A1C, CBC panel)",
+        "diagnostic_imaging_order": "Imaging orders",
+        "clinical_test_order": "Clinical test orders",
+        "procedure_order": "Procedure orders",
+        "portable_medical_order": "Portable medical orders (POLST, etc.)",
+        "future_lab_orders": "Lab tests to be done in the future (e.g., 'CBC panel after a month')",
+        "appointment_orders": "Orders to schedule appointments (e.g., 'meet PCP')"
+      },
+      "prompt": "Extract all provider orders (intent): medications, labs (current and future timing), imaging, clinical tests, procedures, appointment/scheduling instructions, and Portable Medical Orders (e.g., POLST). Record order status (new/placed/pending/cancelled) and any due dates (convert relative timing when anchor date known). Do not classify tentative language ('consider', 'if needed') as orders—keep those under care_plan.\nOutput as a JSON array even if one item.\nExamples:\n- 'Order CBC in 1 month' with note date 2025-08-01 → {\"laboratory_order\": [{\"test\": \"CBC\", \"date\": \"2025-09-01\", \"status\": \"new\"}]}\n- 'MRI chest pending' → {\"diagnostic_imaging_order\": [{\"test\": \"MRI chest\", \"status\": \"pending\"}]}\n- 'Schedule follow-up with PCP' → {\"appointment_orders\": [{\"service\": \"PCP visit\"}]}"
+    },
+    "patient_demographics": {
+      "description": "Data used to categorize individuals for identification, records matching, and other purposes",
+      "elements": {
+        "first_name": "Patient first name",
+        "last_name": "Patient last name",
+        "middle_name": "Middle name or initial",
+        "name_suffix": "Name suffix (Jr, Sr, III, etc.)",
+        "previous_name": "Previous or maiden name",
+        "date_of_birth": "Date of birth",
+        "date_of_death": "Date of death if applicable",
+        "race": "Race",
+        "ethnicity": "Ethnicity",
+        "tribal_affiliation": "Tribal affiliation",
+        "sex": "Biological sex",
+        "preferred_language": "Preferred language",
+        "interpreter_needed": "Whether interpreter is needed",
+        "current_address": "Current address",
+        "previous_address": "Previous address",
+        "phone_number": "Phone number",
+        "phone_number_type": "Type of phone (mobile, home, work)",
+        "email_address": "Email address",
+        "related_persons_name": "Name of related person (emergency contact)",
+        "relationship_type": "Relationship to patient",
+        "occupation": "Patient occupation",
+        "occupation_industry": "Industry of occupation"
+      },
+      "prompt": "Extract patient identification and contact details: full name components (including suffix/previous names), DOB/DoD, race, ethnicity, tribal affiliation, sex (clinical), preferred language and interpreter need, current and previous addresses, phone numbers with type, email, related persons with relationship, occupation and industry. Preserve exact strings where formatting matters."
+    },
+    "problems": {
+      "description": "Condition, diagnosis, or reason for seeking medical attention",
+      "elements": {
+        "problems": "Diagnosis or problem name",
+        "sdoh_problems_health_concerns": "Social determinants related problems",
+        "date_of_onset": "When problem began",
+        "date_of_diagnosis": "When diagnosed",
+        "date_of_resolution": "When problem resolved"
+      },
+      "prompt": "Extract all problems/diagnoses (including SDOH problems) with status (active/history/resolved), date_of_onset, date_of_diagnosis, and date_of_resolution when available. Reserve suspected/ruled-out/VS lists for care_plan assessment considerations rather than confirmed problems, unless the clinician explicitly confirms. Link problems to related orders/medications when explicit.\nOutput as a JSON array even if one item.\nExamples:\n- 'Type 2 diabetes mellitus' → {\"problem_name\": \"Type 2 diabetes mellitus\", \"status\": \"active\"}\n- 'History of MI (2019)' → {\"problem_name\": \"myocardial infarction\", \"status\": \"history\", \"date_of_diagnosis\": \"2019-01-01\"}\n- 'Housing insecurity' → {\"sdoh_problems_health_concerns\": [{\"name\": \"housing insecurity\", \"status\": \"active\"}]}"
+    },
+    "procedures": {
+      "description": "Activity performed for or on a patient as part of provision of care",
+      "elements": {
+        "procedures": "Procedure name and details",
+        "performance_time": "When procedure was performed",
+        "sdoh_interventions": "SDOH-related interventions",
+        "reason_for_referral": "Reason for referral to specialist"
+      },
+      "prompt": "Extract procedures performed with name, code if provided, datetime, performer, location, laterality, complications/outcomes. Include SDOH interventions (e.g., housing application, transport coordination). Capture reason for referral when it triggers or explains procedures.\nExamples:\n- 'Colonoscopy 2025-07-01: 1 polyp removed' → include date, outcome.\n- 'Referred to PT for knee OA' → reason_for_referral = knee OA; procedure/intervention = PT referral.\n- 'Arranged transportation for discharge' → sdoh_interventions: transportation coordination."
+    },
+    "provenance": {
+      "description": "Metadata regarding who created the data and when it was created",
+      "elements": {
+        "author": "Who authored the data",
+        "author_role": "Role of author",
+        "author_time_stamp": "When data was created",
+        "author_organization": "Organization of author"
+      },
+      "prompt": "Extract provenance from headers/signature blocks: author name, role/credentials, timestamp/signature time, and organization/service. Include co-signatures when present."
+    },
+    "vital_signs": {
+      "description": "Physiologic measurements indicating status of body's life sustaining functions",
+      "elements": {
+        "systolic_blood_pressure": "Systolic BP",
+        "diastolic_blood_pressure": "Diastolic BP",
+        "average_blood_pressure": "Average BP",
+        "heart_rate": "Heart rate",
+        "respiratory_rate": "Respiratory rate",
+        "body_temperature": "Body temperature",
+        "body_height": "Height",
+        "body_weight": "Weight",
+        "pulse_oximetry": "Oxygen saturation (SpO2)",
+        "inhaled_oxygen_concentration": "FiO2 or oxygen delivery",
+        "bmi_percentile_2_20_years": "BMI percentile for ages 2-20",
+        "weight_for_length_percentile_birth_24_months": "Weight-for-length percentile for infants",
+        "head_occipital_frontal_circumference_percentile_birth_36_months": "Head circumference percentile"
+      },
+      "prompt": "Extract ALL vital signs from anywhere (triage, nursing, post-op, PE, narrative): BP (systolic/diastolic; position if given), average BP when explicitly calculated, HR, RR, Temp (include °F/°C), Ht, Wt, SpO2, oxygen (FiO2 or L/min), BMI, and pediatric percentiles where applicable. Preserve multiple timepoints with timestamps when available.\nOutput as a JSON array even if one item.\nExamples:\n- 'VS: 120/80, HR 72, RR 16, T 98.6°F' → parse each vital with appropriate units.\n- 'Post-op vitals 14:00: BP 110/70, HR 88' → include timestamp and treat as a distinct timepoint.\n- 'SpO2 92% on 2 L/min O2' → {\"pulse_oximetry\": 92, \"inhaled_oxygen_concentration\": {\"flow_L_per_min\": 2}}"
+    }
+  },
+  "extraction_instructions": {
+    "general": "Perform COMPREHENSIVE extraction of ALL USCDI v6 data elements from the entire clinical note using a two-pass approach: (1) parse structured sections; (2) sweep narrative text for stragglers (e.g., inline follow-ups, historical labs). Deduplicate, normalize units/dates, and link items across classes (problems ↔ orders ↔ meds ↔ labs/imaging; encounter ↔ facility ↔ provenance). Attach a short source_text_snippet where helpful and a confidence score (high/medium/low) when inference was required.",
+    "output_format": "JSON with all applicable data classes present (arrays for each class, even if a single item). Omit a class only if truly absent.",
+    "handle_missing_data": "If a class is explicitly negated (e.g., 'NKDA'), include the class with a negative/none indicator rather than omitting. Otherwise omit only when no information is present anywhere.",
+    "coreference_resolution": "Resolve pronouns and roles to the patient unless explicitly referring to another person. Route family conditions to family_health_history.",
+    "negation_detection": "Only extract CONFIRMED findings in Problems/Allergies/Diagnoses. Route 'rule out', '?', 'likely', 'probable', and differential ('vs') to care_plan assessment considerations with lower confidence. Translate denials (e.g., tobacco/alcohol) into structured 'never/none' statuses.",
+    "date_format": "YYYY-MM-DD. If a relative time cannot be anchored, keep raw literal and add relative_days or approx=true.",
+    "coding_systems": {
+      "problems": "ICD-10-CM or SNOMED CT",
+      "procedures": "CPT or SNOMED CT",
+      "medications": "RxNorm",
+      "laboratory_tests": "LOINC",
+      "allergies": "RxNorm or SNOMED CT",
+      "immunizations": "CVX codes",
+      "vital_signs": "LOINC codes"
+    },
+    "notes": [
+      "Clinical Notes data elements are content exchange standard agnostic; do not force a template.",
+      "Orders represent provider intent; completed results belong in Laboratory/Diagnostic Imaging/Clinical Tests.",
+      "Link care plan recommendations to problems when explicit; keep tentative considerations out of confirmed Problems.",
+      "Capture multiple timestamps for vitals or results when provided (e.g., triage and post-op)."
+    ],
+    "gotchas": [
+      "'No known drug allergies' ≠ 'no allergies' (still check and record food/latex/environmental categories).",
+      "'ED triage vitals' and 'post-op vitals': capture both with timestamps when present.",
+      "'Pending labs/imaging': store under Orders with status=pending (do not place in Laboratory/Diagnostic Imaging yet).",
+      "'Follow up PRN' (as needed): include instruction in care_plan but without a date.",
+      "'Dispo: Home with services' → set encounter_disposition accordingly and record SDOH referral/intervention under procedures and/or care_plan.",
+      "'Care team: PCP Dr. Lee (NPI …) cc'd' → include Dr. Lee as a care_team_member with role and identifier if present."
+    ]
+  }
+}

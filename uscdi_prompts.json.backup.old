@@ -1,0 +1,298 @@
+{
+  "version": "USCDI v6",
+  "description": "Complete USCDI v6 prompt metadata for extracting all clinical data elements",
+  "data_classes": {
+    "allergies_and_intolerances": {
+      "description": "Harmful or undesired physiological responses associated with exposure to a substance",
+      "elements": {
+        "medication_allergy_intolerance": "Allergy or intolerance to medications",
+        "drug_class_allergy_intolerance": "Allergy or intolerance to drug classes",
+        "non_medication_allergy_intolerance": "Allergy or intolerance to non-medication substances",
+        "reaction": "Physical response to allergen"
+      },
+      "prompt": "Extract all allergies and intolerances including medication allergies, drug class allergies, non-medication allergies, and associated reactions."
+    },
+    "care_plan": {
+      "description": "Information that guides treatment of the patient and recommendations for future treatment",
+      "elements": {
+        "assessment_and_plan_of_treatment": "Clinical assessment and treatment plan",
+        "care_plan": "Comprehensive care plan",
+        "follow_up_instructions": "Follow-up appointments, lab orders, and future care instructions",
+        "scheduled_appointments": "Scheduled visits with providers"
+      },
+      "prompt": "Extract ALL care plan elements from anywhere in the note. Look in Assessment & Plan sections, provider recommendations, discharge instructions, and narrative text. Extract: assessments of current conditions, treatment plans, follow-up instructions (e.g., 'meet PCP after A1C', 'follow up in 2 weeks'), scheduled appointments, future lab orders, medication changes, referrals, patient education topics, lifestyle modifications, and any other care recommendations. Extract from 'Plan:', 'A/P:', or embedded in provider notes."
+    },
+    "care_team_members": {
+      "description": "Information about a person who participates or is expected to participate in the care of a patient",
+      "elements": {
+        "care_team_member_name": "Name of care team member",
+        "care_team_member_identifier": "Identifier for care team member",
+        "care_team_member_role": "Role or specialty of team member",
+        "care_team_member_location": "Location where team member practices",
+        "care_team_member_telecom": "Contact information for team member"
+      },
+      "prompt": "Extract all care team members with their names, identifiers, roles, locations, and contact information."
+    },
+    "clinical_notes": {
+      "description": "Narrative patient data relevant to the context identified by note types",
+      "note": "Clinical Notes data elements are content exchange standard agnostic",
+      "subtypes": {
+        "consultation_note": "Specialist consultation documentation",
+        "discharge_summary_note": "Hospital discharge summary",
+        "emergency_department_note": "Emergency department visit documentation",
+        "history_and_physical": "History and physical examination",
+        "operative_note": "Surgical procedure documentation",
+        "procedure_note": "Procedural documentation",
+        "progress_note": "Progress during treatment"
+      },
+      "prompt": "Identify the type of clinical note and extract relevant narrative content for consultation, discharge, ED, H&P, operative, procedure, or progress notes."
+    },
+    "clinical_tests": {
+      "description": "Non-imaging and non-laboratory tests performed that result in structured or unstructured findings",
+      "elements": {
+        "clinical_test": "Type of clinical test performed",
+        "clinical_test_result_report": "Results or report of clinical test"
+      },
+      "prompt": "Extract all clinical tests (non-imaging, non-laboratory) and their results or reports."
+    },
+    "diagnostic_imaging": {
+      "description": "Tests that result in visual images requiring interpretation by a credentialed professional",
+      "elements": {
+        "diagnostic_imaging_test": "Type of imaging test performed",
+        "diagnostic_imaging_report": "Radiology report and interpretation"
+      },
+      "prompt": "Extract all diagnostic imaging tests and their associated reports or interpretations."
+    },
+    "encounter_information": {
+      "description": "Information related to interactions between healthcare providers and a patient",
+      "elements": {
+        "encounter_type": "Type of encounter (inpatient, outpatient, emergency, etc.)",
+        "encounter_identifier": "Unique identifier for the encounter",
+        "encounter_diagnosis": "Diagnoses associated with the encounter",
+        "encounter_time": "Date and time of encounter",
+        "encounter_location": "Location where encounter occurred",
+        "encounter_disposition": "Disposition at end of encounter"
+      },
+      "prompt": "Extract encounter information including type, identifier, diagnosis, time, location, and disposition."
+    },
+    "facility_information": {
+      "description": "Physical place of available services or resources",
+      "elements": {
+        "facility_identifier": "Unique identifier for the facility",
+        "facility_type": "Type of healthcare facility",
+        "facility_name": "Name of the facility",
+        "facility_address": "Physical address of facility"
+      },
+      "prompt": "Extract facility information including identifier, type, name, and address."
+    },
+    "family_health_history": {
+      "description": "Family member health condition(s) that are relevant to a patient's care",
+      "elements": {
+        "family_health_history": "Family member conditions and relationships"
+      },
+      "prompt": "Extract ALL family health history. Look for any mentions of family members (mother, father, siblings, grandparents, children) and their medical conditions, including hereditary conditions, causes of death, ages of diagnosis. Extract from family history sections, HPI mentions of 'family history of...', or anywhere family medical information is mentioned. Include positive and negative family history."
+    },
+    "goals_and_preferences": {
+      "description": "Desired state to be achieved by a person or a person's elections to guide care",
+      "elements": {
+        "patient_goals": "Patient's health and treatment goals",
+        "sdoh_goals": "Social determinants of health goals",
+        "advance_directive_observation": "Advance directive status and preferences",
+        "care_experience_preference": "Patient preferences for care experience",
+        "treatment_intervention_preference": "Patient preferences for treatments"
+      },
+      "prompt": "Extract patient goals, SDOH goals, advance directives, care experience preferences, and treatment intervention preferences."
+    },
+    "health_insurance_information": {
+      "description": "Data related to an individual's insurance coverage for health care",
+      "elements": {
+        "coverage_status": "Current insurance coverage status",
+        "coverage_type": "Type of insurance coverage",
+        "relationship_to_subscriber": "Relationship to primary subscriber",
+        "member_identifier": "Member ID",
+        "subscriber_identifier": "Subscriber ID",
+        "group_identifier": "Group number",
+        "payer_identifier": "Insurance payer identifier"
+      },
+      "prompt": "Extract health insurance information including coverage status, type, relationship to subscriber, member ID, subscriber ID, group ID, and payer ID."
+    },
+    "health_status_assessments": {
+      "description": "Assessments of health-related matters of interest, importance, or worry",
+      "elements": {
+        "health_concerns": "Current health concerns",
+        "functional_status": "Functional ability status",
+        "disability_status": "Disability status",
+        "mental_cognitive_status": "Mental and cognitive status",
+        "pregnancy_status": "Pregnancy status",
+        "alcohol_use": "Alcohol use assessment",
+        "substance_use": "Substance use assessment",
+        "physical_activity": "Physical activity level",
+        "sdoh_assessment": "Social determinants of health assessment",
+        "smoking_status": "Smoking status"
+      },
+      "prompt": "Extract ALL health status and social history assessments. Look throughout the note for any mentions of: smoking/tobacco (current, former, never, packs/day), alcohol use (drinks/week, frequency), substance/drug use (type, frequency), physical activity level, functional status, mental health status, social determinants of health, pregnancy status, disability status. Extract this information even if found in narrative text, HPI, ROS, or assessment sections without explicit 'Social History' headers."
+    },
+    "immunizations": {
+      "description": "Record of vaccine administration",
+      "elements": {
+        "immunizations": "Vaccine name and details",
+        "lot_number": "Vaccine lot number"
+      },
+      "prompt": "Extract immunization records including vaccine names and lot numbers."
+    },
+    "laboratory": {
+      "description": "Analysis of clinical specimens to obtain information about the health of a patient",
+      "elements": {
+        "tests": "Laboratory test name",
+        "values_results": "Numeric or qualitative result",
+        "specimen_type": "Type of specimen collected",
+        "result_status": "Status of result (final, preliminary, etc.)",
+        "result_unit_of_measure": "Unit of measurement",
+        "result_reference_range": "Normal reference range",
+        "result_interpretation": "Interpretation (normal, abnormal, high, low)",
+        "specimen_source_site": "Anatomical site of specimen collection",
+        "specimen_identifier": "Specimen ID",
+        "specimen_condition_acceptability": "Specimen quality/acceptability"
+      },
+      "prompt": "Extract ALL laboratory test results from ANYWHERE in the note - Labs section, Assessment mentions, HPI references, or embedded in text. Look for: test names (CBC, CMP, A1C, glucose, creatinine, etc.), numeric results with units, reference ranges (normal ranges), abnormal flags (H/L/high/low/abnormal), dates. Extract even if partial (e.g., 'A1C was 7.2%', 'glucose 110', 'Cr 1.1'). Include all lab results mentioned, whether current or historical."
+    },
+    "medical_devices": {
+      "description": "An instrument, machine, appliance, implant, software or other article intended for medical use",
+      "elements": {
+        "unique_device_identifier": "UDI for implanted or used devices"
+      },
+      "prompt": "Extract unique device identifiers (UDI) for all medical devices mentioned."
+    },
+    "medications": {
+      "description": "Pharmacologic agents used in diagnosis, cure, mitigation, treatment, or prevention of disease",
+      "elements": {
+        "medications": "Medication name",
+        "dose": "Dose amount",
+        "dose_unit_of_measure": "Unit for dose",
+        "route_of_administration": "Route (oral, IV, etc.)",
+        "indication": "Reason for medication",
+        "dispense_status": "Status of prescription",
+        "medication_instructions": "Instructions for taking medication",
+        "medication_adherence": "Patient adherence to medication"
+      },
+      "prompt": "Extract all medications including name, dose, dose unit, route, indication, dispense status, instructions, and adherence information."
+    },
+    "orders": {
+      "description": "Provider-authored request for delivery of patient care services",
+      "note": "Orders convey provider's intent to have a service performed",
+      "elements": {
+        "medication_order": "Medication prescriptions",
+        "laboratory_order": "Lab test orders (e.g., A1C, CBC panel)",
+        "diagnostic_imaging_order": "Imaging orders",
+        "clinical_test_order": "Clinical test orders",
+        "procedure_order": "Procedure orders",
+        "portable_medical_order": "Portable medical orders (POLST, etc.)",
+        "future_lab_orders": "Lab tests to be done in the future (e.g., 'CBC panel after a month')",
+        "appointment_orders": "Orders to schedule appointments (e.g., 'meet PCP')"
+      },
+      "prompt": "Extract all orders including medication orders, lab orders (both current and future such as 'A1C and CBC panel after a month'), imaging orders, clinical test orders, procedure orders, appointment orders ('meet PCP'), and portable medical orders. Include the timing for future orders."
+    },
+    "patient_demographics": {
+      "description": "Data used to categorize individuals for identification, records matching, and other purposes",
+      "elements": {
+        "first_name": "Patient first name",
+        "last_name": "Patient last name",
+        "middle_name": "Middle name or initial",
+        "name_suffix": "Name suffix (Jr, Sr, III, etc.)",
+        "previous_name": "Previous or maiden name",
+        "date_of_birth": "Date of birth",
+        "date_of_death": "Date of death if applicable",
+        "race": "Race",
+        "ethnicity": "Ethnicity",
+        "tribal_affiliation": "Tribal affiliation",
+        "sex": "Biological sex",
+        "preferred_language": "Preferred language",
+        "interpreter_needed": "Whether interpreter is needed",
+        "current_address": "Current address",
+        "previous_address": "Previous address",
+        "phone_number": "Phone number",
+        "phone_number_type": "Type of phone (mobile, home, work)",
+        "email_address": "Email address",
+        "related_persons_name": "Name of related person (emergency contact)",
+        "relationship_type": "Relationship to patient",
+        "occupation": "Patient occupation",
+        "occupation_industry": "Industry of occupation"
+      },
+      "prompt": "Extract all patient demographic information including name components, suffix, previous name, DOB, death date, race, ethnicity, tribal affiliation, sex, preferred language, interpreter needs, addresses, phone numbers, email, related persons, relationships, occupation, and occupation industry."
+    },
+    "problems": {
+      "description": "Condition, diagnosis, or reason for seeking medical attention",
+      "elements": {
+        "problems": "Diagnosis or problem name",
+        "sdoh_problems_health_concerns": "Social determinants related problems",
+        "date_of_onset": "When problem began",
+        "date_of_diagnosis": "When diagnosed",
+        "date_of_resolution": "When problem resolved"
+      },
+      "prompt": "Extract all problems and diagnoses including SDOH-related problems, with dates of onset, diagnosis, and resolution."
+    },
+    "procedures": {
+      "description": "Activity performed for or on a patient as part of provision of care",
+      "elements": {
+        "procedures": "Procedure name and details",
+        "performance_time": "When procedure was performed",
+        "sdoh_interventions": "SDOH-related interventions",
+        "reason_for_referral": "Reason for referral to specialist"
+      },
+      "prompt": "Extract all procedures including SDOH interventions, performance times, and reasons for referral."
+    },
+    "provenance": {
+      "description": "Metadata regarding who created the data and when it was created",
+      "elements": {
+        "author": "Who authored the data",
+        "author_role": "Role of author",
+        "author_time_stamp": "When data was created",
+        "author_organization": "Organization of author"
+      },
+      "prompt": "Extract provenance information including author, author role, timestamp, and organization."
+    },
+    "vital_signs": {
+      "description": "Physiologic measurements indicating status of body's life sustaining functions",
+      "elements": {
+        "systolic_blood_pressure": "Systolic BP",
+        "diastolic_blood_pressure": "Diastolic BP",
+        "average_blood_pressure": "Average BP",
+        "heart_rate": "Heart rate",
+        "respiratory_rate": "Respiratory rate",
+        "body_temperature": "Body temperature",
+        "body_height": "Height",
+        "body_weight": "Weight",
+        "pulse_oximetry": "Oxygen saturation (SpO2)",
+        "inhaled_oxygen_concentration": "FiO2 or oxygen delivery",
+        "bmi_percentile_2_20_years": "BMI percentile for ages 2-20",
+        "weight_for_length_percentile_birth_24_months": "Weight-for-length percentile for infants",
+        "head_occipital_frontal_circumference_percentile_birth_36_months": "Head circumference percentile"
+      },
+      "prompt": "Extract ALL vital signs from ANYWHERE in the note including Physical Exam, Nursing notes, Triage, or narrative text. Look for: Blood Pressure (BP/systolic/diastolic mmHg), Heart Rate (HR/pulse bpm), Respiratory Rate (RR/breaths per minute), Temperature (Temp °F or °C), Height (in/cm), Weight (lbs/kg), Pulse Oximetry (SpO2/O2 sat %), Oxygen concentration (FiO2/L), BMI, and percentiles. Extract even if abbreviated (e.g., 'VS: 120/80, HR 72, RR 16, T 98.6')."
+    }
+  },
+  "extraction_instructions": {
+    "general": "Perform COMPREHENSIVE extraction of ALL USCDI v6 data elements from the clinical note. Read the ENTIRE note carefully from start to finish. Extract information from ALL sections including Chief Complaint, HPI, PMH, PSH, Medications, Allergies, Social History, Family History, ROS, Physical Exam, Labs/Vitals, Assessment, Plan, and any narrative text. DO NOT skip any data classes - extract ALL 22 USCDI data classes when information is present.",
+    "output_format": "JSON with all applicable data classes present",
+    "handle_missing_data": "Only omit data classes that have absolutely no information in the note. For each data class present, extract ALL relevant elements comprehensively.",
+    "coreference_resolution": "Resolve pronouns and references (he/she/patient/pt refers to the patient). 'Mother' in family history refers to patient's mother. 'His diabetes' means the patient has diabetes.",
+    "negation_detection": "CRITICAL: Distinguish between positive findings and negations. 'No history of diabetes' = EXCLUDE diabetes. 'Denies smoking' = non-smoker. 'Patient does not have chest pain' = EXCLUDE chest pain. Only extract CONFIRMED/POSITIVE findings, NOT negated ones. Mark negative findings separately if relevant (e.g., 'denies tobacco use' should result in smoking_status: 'never' or 'non-smoker').",
+    "date_format": "YYYY-MM-DD when extracting dates",
+    "coding_systems": {
+      "problems": "ICD-10-CM or SNOMED CT",
+      "procedures": "CPT or SNOMED CT",
+      "medications": "RxNorm",
+      "laboratory_tests": "LOINC",
+      "allergies": "RxNorm or SNOMED CT",
+      "immunizations": "CVX codes",
+      "vital_signs": "LOINC codes"
+    },
+    "notes": [
+      "Clinical Notes data elements are content exchange standard agnostic and should not be interpreted as structured document templates",
+      "Orders convey a provider's intent to have a service performed on or for a patient",
+      "SDOH refers to Social Determinants of Health",
+      "UDI refers to Unique Device Identifier for medical devices",
+      "All percentile measurements apply to specified age ranges only"
+    ]
+  }
+}
